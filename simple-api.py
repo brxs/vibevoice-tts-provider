@@ -110,19 +110,47 @@ def play_audio(audio: np.ndarray, sample_rate: int = 24000):
     p.terminate()
 
 
+def save_audio(audio: np.ndarray, sample_rate: int = 24000, filename: str = "output.wav"):
+    """Save audio array to WAV file"""
+    import wave
+    if len(audio) == 0:
+        return
+
+    with wave.open(filename, 'wb') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)  # 16-bit
+        wf.setframerate(sample_rate)
+        wf.writeframes(audio.tobytes())
+    print(f"Saved audio to {filename}")
+
+
 async def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <text to speak>")
+        print(f"Usage: {sys.argv[0]} [--save output.wav] <text to speak>")
         sys.exit(1)
 
-    text = " ".join(sys.argv[1:])
+    # Check for --save flag
+    save_file = None
+    args = sys.argv[1:]
+    if args[0] == "--save" and len(args) > 1:
+        save_file = args[1]
+        args = args[2:]
+
+    if not args:
+        print(f"Usage: {sys.argv[0]} [--save output.wav] <text to speak>")
+        sys.exit(1)
+
+    text = " ".join(args)
     api_url = os.getenv("VIBEVOICE_API_URL", "http://127.0.0.1:8000/v1")
 
     tts = VibeVoiceTTS(api_url=api_url)
     audio, sample_rate = await tts.synthesize(text)
 
     if len(audio) > 0:
-        play_audio(audio, sample_rate)
+        if save_file:
+            save_audio(audio, sample_rate, save_file)
+        else:
+            play_audio(audio, sample_rate)
     else:
         print("No audio generated", file=sys.stderr)
         sys.exit(1)
