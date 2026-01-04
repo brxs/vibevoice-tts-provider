@@ -1,0 +1,22 @@
+# VibeVoice TTS Provider Configuration
+
+[server]
+listen_addr = "[::1]:50051"
+
+[vibevoice]
+api_url = "http://127.0.0.1:8000/v1"
+model = "vibevoice/VibeVoice-7B"
+ddpm_steps = 20
+cfg_scale = 3.0
+
+[voices]
+default = "primavera"
+
+[voices.primavera]
+path = "primavera.wav"
+display_name = "Primavera"
+
+# Add more voices as needed:
+# [voices.narrator]
+# path = "/path/to/narrator.wav"
+# display_name = "Narrator"
