@@ -13,7 +13,7 @@ cfg_scale = 3.0
 default = "primavera"
 
 [voices.primavera]
-path = "/home/plantoidz/Documents/VibeVoice-API-main/primavera.wav"
+path = "primavera.wav"
 display_name = "Primavera"
 
 # Add more voices as needed:
