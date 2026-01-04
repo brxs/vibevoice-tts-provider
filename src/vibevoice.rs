@@ -3,6 +3,7 @@ use futures_util::StreamExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
+use tracing::{debug, warn};
 
 use crate::config::VibeVoiceConfig;
 
@@ -127,6 +128,10 @@ async fn process_sse_stream(
         let text = String::from_utf8_lossy(&chunk);
 
         for ch in text.chars() {
+            // Handle both \n and \r\n line endings
+            if ch == '\r' {
+                continue;
+            }
             if ch == '\n' {
                 let line = line_buffer.trim().to_string();
                 line_buffer.clear();
@@ -134,39 +139,49 @@ async fn process_sse_stream(
                 if line.is_empty() {
                     // Empty line means end of event
                     if let Some(ref event_type) = current_event {
+                        debug!(event_type, data_len = data_buffer.len(), "Processing SSE event");
                         match event_type.as_str() {
                             "start" => {
-                                if let Ok(start) =
-                                    serde_json::from_str::<StartEvent>(&data_buffer)
-                                {
-                                    sample_rate = start.sample_rate.unwrap_or(24000);
+                                match serde_json::from_str::<StartEvent>(&data_buffer) {
+                                    Ok(start) => {
+                                        sample_rate = start.sample_rate.unwrap_or(24000);
+                                        debug!(sample_rate, "Got start event");
+                                    }
+                                    Err(e) => {
+                                        warn!(error = %e, data = %data_buffer, "Failed to parse start event");
+                                    }
                                 }
                             }
                             "chunk" => {
-                                if let Ok(chunk_data) =
-                                    serde_json::from_str::<ChunkEvent>(&data_buffer)
-                                {
-                                    let audio_bytes = base64::engine::general_purpose::STANDARD
-                                        .decode(&chunk_data.data)?;
+                                match serde_json::from_str::<ChunkEvent>(&data_buffer) {
+                                    Ok(chunk_data) => {
+                                        let audio_bytes = base64::engine::general_purpose::STANDARD
+                                            .decode(&chunk_data.data)?;
 
-                                    let samples: Vec<i16> = audio_bytes
-                                        .chunks_exact(2)
-                                        .map(|b| i16::from_le_bytes([b[0], b[1]]))
-                                        .collect();
+                                        let samples: Vec<i16> = audio_bytes
+                                            .chunks_exact(2)
+                                            .map(|b| i16::from_le_bytes([b[0], b[1]]))
+                                            .collect();
 
-                                    let audio_chunk = AudioChunk {
-                                        samples,
-                                        sample_rate,
-                                        is_final: false,
-                                    };
+                                        debug!(samples_len = samples.len(), "Decoded audio chunk");
 
-                                    if tx.send(Ok(audio_chunk)).await.is_err() {
-                                        return Err(VibeVoiceError::ChannelError);
+                                        let audio_chunk = AudioChunk {
+                                            samples,
+                                            sample_rate,
+                                            is_final: false,
+                                        };
+
+                                        if tx.send(Ok(audio_chunk)).await.is_err() {
+                                            return Err(VibeVoiceError::ChannelError);
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!(error = %e, data = %data_buffer, "Failed to parse chunk event");
                                     }
                                 }
                             }
                             "end" => {
-                                // Send final empty chunk to signal completion
+                                debug!("Got end event");
                                 let final_chunk = AudioChunk {
                                     samples: vec![],
                                     sample_rate,
@@ -176,13 +191,18 @@ async fn process_sse_stream(
                                 return Ok(());
                             }
                             "error" => {
-                                if let Ok(error_data) =
-                                    serde_json::from_str::<ErrorEvent>(&data_buffer)
-                                {
-                                    return Err(VibeVoiceError::ApiError(error_data.error));
+                                match serde_json::from_str::<ErrorEvent>(&data_buffer) {
+                                    Ok(error_data) => {
+                                        return Err(VibeVoiceError::ApiError(error_data.error));
+                                    }
+                                    Err(e) => {
+                                        warn!(error = %e, data = %data_buffer, "Failed to parse error event");
+                                    }
                                 }
                             }
-                            _ => {}
+                            _ => {
+                                debug!(event_type, "Unknown event type");
+                            }
                         }
                     }
                     current_event = None;

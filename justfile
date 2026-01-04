@@ -30,6 +30,10 @@ run-headless *ARGS:
 run-headless-release *ARGS:
     cargo run --release -- --no-tui {{ARGS}}
 
+# Run with debug logging (headless mode)
+debug *ARGS:
+    RUST_LOG=debug cargo run -- --no-tui {{ARGS}}
+
 # Check code without building
 check:
     cargo check
