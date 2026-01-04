@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         e
     })?;
 
-    let listen_addr = config.server.listen_addr.clone();
+    let listen_addr = format!("[::]:{}", config.server.grpc_port);
     let listen_addr_parsed = listen_addr.parse()?;
 
     // Extract voice info for TUI

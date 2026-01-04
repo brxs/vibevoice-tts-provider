@@ -11,12 +11,12 @@ pub struct Config {
 
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
-    #[serde(default = "default_listen_addr")]
-    pub listen_addr: String,
+    #[serde(default = "default_grpc_port")]
+    pub grpc_port: u16,
 }
 
-fn default_listen_addr() -> String {
-    "[::1]:50051".to_string()
+fn default_grpc_port() -> u16 {
+    50051
 }
 
 #[derive(Debug, Clone, Deserialize)]

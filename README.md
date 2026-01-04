@@ -28,7 +28,7 @@ Create a `config.toml` file:
 
 ```toml
 [server]
-listen_addr = "[::1]:50051"
+grpc_port = 50051
 
 [vibevoice]
 api_url = "http://127.0.0.1:8000/v1"
@@ -52,7 +52,7 @@ display_name = "Narrator (Deep Male)"
 
 | Section | Key | Description |
 |---------|-----|-------------|
-| `server` | `listen_addr` | gRPC server bind address |
+| `server` | `grpc_port` | Port for gRPC server (binds to all interfaces) |
 | `vibevoice` | `api_url` | VibeVoice API base URL |
 | `vibevoice` | `model` | Model identifier |
 | `vibevoice` | `ddpm_steps` | Diffusion steps (higher = better quality, slower) |

@@ -1,7 +1,7 @@
 # VibeVoice TTS Provider Configuration
 
 [server]
-listen_addr = "[::1]:50051"
+grpc_port = 50051
 
 [vibevoice]
 api_url = "http://127.0.0.1:8000/v1"
